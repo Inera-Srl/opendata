@@ -13,7 +13,8 @@ public class DB
 {
 	public Connection conn;
 	public Connection connTest;
-	public static String mysqlDriver = "com.mysql.jdbc.Driver";
+//	public static String mysqlDriver = "com.mysql.jdbc.Driver";
+	public static String mysqlDriver = "org.mariadb.jdbc.Driver";
 	public static String urlTest = "jdbc:mysql://gauss/abi";
 	public static String urlGauss = "jdbc:mysql://gauss/abi";
 	// public static String urlTest =
@@ -68,7 +69,8 @@ public class DB
 	{
 		try
 		{
-			Class.forName("com.mysql.jdbc.Driver");
+//			Class.forName("com.mysql.jdbc.Driver");
+			Class.forName("org.mariadb.jdbc.Driver");
 		}
 		catch(Exception e)
 		{
