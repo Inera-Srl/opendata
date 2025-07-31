@@ -468,8 +468,8 @@ public class OpenData
 		ResultSet bib;
 		PreparedStatement stmt;
 		stmt = db.prepare(qconfig.getProperty("fondi-speciali.query"));
-		bibs = db.select(qconfig.getProperty("censite.query"));
-		String descrizione, dewey, deweyTesto;
+		bibs = db.select(qconfig.getProperty("censite.query.per.fondi"));
+		String descrizione, dewey, deweyTesto, urlCitazioneBibliografica, consistenza, datazione, modAcquisizione, bibliografia;
 		Document doc = new Document();
 		Element root = new Element("biblioteche");
 		root.setAttribute("data-export", dateStampFormat.format(new Date()));
@@ -479,17 +479,19 @@ public class OpenData
 		int limit = Integer.MAX_VALUE;
 		log.info("Elaborazione fondi speciali");
 		partialStart = System.nanoTime();
-		try
-		{
+		try {
 			limit = Integer.parseInt(config.getProperty("censite.limit"));
 			log.warn("Elaborazione delle prime " + limit + " biblioteche");
-		}
-		catch(NumberFormatException e)
-		{
+			
+		} catch(NumberFormatException e) {
 			log.warn("Elaborazione di tutte le biblioteche");
 		}
-		try
-		{
+		
+		try {
+			bibs.last(); // Vai all'ultima riga
+			int rowCount = bibs.getRow(); // Ottieni il numero di righe
+			bibs.beforeFirst(); // Torna prima della prima riga per iterare normalmente
+			log.info("Elaborazione fondi speciali per " + rowCount + " biblioteche");
 			while(bibs.next() && limit > 0)
 			{
 				limit--;
@@ -498,6 +500,7 @@ public class OpenData
 				biblioteca.setAttribute("denominazione", bibs.getString("denominazione"));
 				stmt.setInt(1, bibs.getInt("id"));
 				bib = stmt.executeQuery();
+				
 				boolean ok = false;
 				while(bib.next())
 				{
@@ -505,18 +508,30 @@ public class OpenData
 					descrizione = bib.getString("descrizione");
 					dewey = bib.getString("dewey");
 					deweyTesto = bib.getString("dewey-testo");
+					urlCitazioneBibliografica = bib.getString("url-citazionebiblio");
+					consistenza = bib.getString("consistenza");
+					datazione = bib.getString("datazione");
+					modAcquisizione = bib.getString("mod-acquisizione");
+					bibliografia = bib.getString("bibliografia");
 					element = new Element("fondo-speciale");
+					/* Codice fondo */
+					Element codice = new Element("codice");
+					codice.setText(bib.getString("codice"));
+					element.addContent(codice);
+					/* FINE Codice fondo */
+					/* Denominazione fondo */
 					Element denominazione = new Element("denominazione");
 					denominazione.setText(bib.getString("denominazione").trim());
 					element.addContent(denominazione);
-					if(descrizione != null && descrizione.trim() != "")
-					{
+					/* FINE Denominazione fondo */
+					/* Descrizione fondo */
+					if (descrizione != null && descrizione.trim() != "") {
 						element.addContent(new Element("descrizione").setText(descrizione.trim()));
 					}
-					if(dewey != null && dewey.trim() != "")
-					{
-						if(dewey.length() > 3)
-						{
+					/* FINE Descrizione fondo */
+					/* Dewey fondo */
+					if (dewey != null && dewey.trim().length() > 0) {
+						if (dewey.length() > 3) {
 							dewey = dewey.substring(0, 3) + "." + dewey.substring(3);
 						}
 						Element deweyE = new Element("dewey");
@@ -524,6 +539,151 @@ public class OpenData
 						deweyE.setText(deweyTesto.trim());
 						element.addContent(deweyE);
 					}
+					/* FINE Dewey fondo */
+					/* Fondo depositato */
+					Element fondoDepositato = new Element("fondo-depositato");
+					fondoDepositato.setText(bib.getString("fondo-depositato"));
+					element.addContent(fondoDepositato);
+					/* FINE Fondo depositato */
+					/* Catalogazione inventario */
+					Element catalogazioneInventario = new Element("catalogazione-inventario");
+					catalogazioneInventario.setText(bib.getString("catalogazione-inventario"));
+					element.addContent(catalogazioneInventario);
+					/* FINE Catalogazione inventario */
+					/* Url / Citazione bibliografica */
+					if (urlCitazioneBibliografica != null && urlCitazioneBibliografica.trim().length() > 0) {
+						element.addContent(new Element("url-o-citazione-bibliografica").setText(urlCitazioneBibliografica.trim()));
+					}
+					/* FINE Url / Citazione bibliografica */
+					/* Tipologia fondo */
+					Element tipologiaFondo = new Element("tipologia-fondo");
+					tipologiaFondo.setText(bib.getString("tipologia"));
+					element.addContent(tipologiaFondo);
+					/* FINE Tipologia fondo */
+					/* Consistenza */
+					if (consistenza != null && consistenza.trim().length() > 0) {
+						element.addContent(new Element("consistenza").setText(consistenza.trim()));
+					}
+					/* FINE Consistenza */
+					/* Datazione */
+					if (datazione != null && datazione.trim().length() > 0) {
+						element.addContent(new Element("datazione").setText(datazione.trim()));
+					}
+					/* FINE Datazione */
+					/* Modalità Acquisizione */
+					if (modAcquisizione != null && modAcquisizione.trim().length() > 0) {
+						element.addContent(new Element("modalita-acquisizione").setText(modAcquisizione.trim()));
+					}
+					/* FINE Modalità Acquisizione */
+					/* Bibliografia */
+					if (bibliografia != null && bibliografia.trim().length() > 0) {
+						element.addContent(new Element("bibliografia").setText(bibliografia.trim()));
+					}
+					/* FINE Bibliografia */
+					/* LISTA Tipologia Documentaria */
+					if (bib.getString("tipologia-documentaria") != null && bib.getString("tipologia-documentaria").trim().length() > 0) {
+						String[] tipologiaDocumentariaArr = (bib.getString("tipologia-documentaria")).split("\\$\\$\\$");
+						if (tipologiaDocumentariaArr != null && tipologiaDocumentariaArr.length > 0) {
+							Element tipDocs = new Element("tipologia-documentaria");
+							for (int i = 0; i < tipologiaDocumentariaArr.length; i++) {
+								tipDocs.addContent(new Element("descrizione").setText(tipologiaDocumentariaArr[i]));
+							}
+							element.addContent(tipDocs);
+						}
+					}
+					/* FINE LISTA Tipologia Documentaria */
+					/* LISTA Provenienza */
+					if (bib.getString("provenienza") != null && bib.getString("provenienza").trim().length() > 0) {
+						String[] provenienzaArr = (bib.getString("provenienza")).split("\\$\\$\\$");
+						if (provenienzaArr != null && provenienzaArr.length > 0) {
+							Element prov = new Element("provenienza");
+							for (int i = 0; i < provenienzaArr.length; i++) {
+								String[] provenienzaEntry = provenienzaArr[i].split("£");
+								if (provenienzaEntry != null && provenienzaEntry.length == 2) {
+									Element entry = new Element("denominazione");
+									entry.setAttribute("tipologia", provenienzaEntry[0]);
+									entry.setText(provenienzaEntry[1]);
+									prov.addContent(entry);
+								}
+							}
+							if (!(prov.getTextTrim().isEmpty() && prov.getChildren().isEmpty())) {
+								element.addContent(prov);
+							}
+						}
+					}
+					/* FINE LISTA Provenienza */
+					/* LISTA Soggetto Produttore */
+					if (bib.getString("soggetto-produttore") != null && bib.getString("soggetto-produttore").trim().length() > 0) {
+						String[] soggProdArr = (bib.getString("soggetto-produttore")).split("\\$\\$\\$");
+						if (soggProdArr != null && soggProdArr.length > 0) {
+							Element soggProd = new Element("soggetto-produttore");
+							for (int i = 0; i < soggProdArr.length; i++) {
+								String[] soggProdEntry = soggProdArr[i].split("£");
+								if (soggProdEntry != null && soggProdEntry.length == 2) {
+									Element entry = new Element("denominazione");
+									entry.setAttribute("tipologia", soggProdEntry[0]);
+									entry.setText(soggProdEntry[1]);
+									soggProd.addContent(entry);
+								}
+							}
+							if (!(soggProd.getTextTrim().isEmpty() && soggProd.getChildren().isEmpty())) {
+								element.addContent(soggProd);
+							}
+						}
+					}
+					/* FINE LISTA Soggetto Produttore */
+					/* LISTA Fondi Collegati */
+					if (bib.getString("fondi-collegati1") != null && bib.getString("fondi-collegati1").trim().length() > 0) {
+						String[] fondiCollArr = (bib.getString("fondi-collegati1")).split("\\$\\$\\$");
+						if (fondiCollArr != null && fondiCollArr.length > 0) {
+							Element fondiColl = new Element("fondi-collegati");
+							for (int i = 0; i < fondiCollArr.length; i++) {
+								boolean fondoIsOk = false;
+								
+								Element entry = new Element("fondo");
+								String[] fondoCollEntry = fondiCollArr[i].split("£");
+								if (fondoCollEntry != null && fondoCollEntry.length == 2) {
+									entry.setAttribute("isil", fondoCollEntry[0]);
+									String[] codAndDen = fondoCollEntry[1].split("_");
+									if (codAndDen != null && codAndDen.length == 2) {
+										entry.setAttribute("codice", codAndDen[0]);
+										entry.setAttribute("denominazione", codAndDen[1]);
+										fondoIsOk = true;
+									}
+								}
+								if (fondoIsOk) fondiColl.addContent(entry);
+							}
+							if (!(fondiColl.getTextTrim().isEmpty() && fondiColl.getChildren().isEmpty())) {
+								element.addContent(fondiColl);
+							}
+						}
+						
+					} else if (bib.getString("fondi-collegati2") != null && bib.getString("fondi-collegati2").trim().length() > 0) {
+						String[] fondiCollArr = (bib.getString("fondi-collegati2")).split("\\$\\$\\$");
+						if (fondiCollArr != null && fondiCollArr.length > 0) {
+							Element fondiColl = new Element("fondi-collegati");
+							for (int i = 0; i < fondiCollArr.length; i++) {
+								boolean fondoIsOk = false;
+								
+								Element entry = new Element("fondo");
+								String[] fondoCollEntry = fondiCollArr[i].split("£");
+								if (fondoCollEntry != null && fondoCollEntry.length == 2) {
+									entry.setAttribute("isil", fondoCollEntry[0]);
+									String[] codAndDen = fondoCollEntry[1].split("_");
+									if (codAndDen != null && codAndDen.length == 2) {
+										entry.setAttribute("codice", codAndDen[0]);
+										entry.setAttribute("denominazione", codAndDen[1]);
+										fondoIsOk = true;
+									}
+								}
+								if (fondoIsOk) fondiColl.addContent(entry);
+							}
+							if (!(fondiColl.getTextTrim().isEmpty() && fondiColl.getChildren().isEmpty())) {
+								element.addContent(fondiColl);
+							}
+						}
+					}
+					/* FINE LISTA Fondi Collegati */
 					biblioteca.addContent(element);
 				}
 				if(ok) root.addContent(biblioteca);
@@ -1012,17 +1172,14 @@ public class OpenData
 				stmt.setInt(1, idBib);
 				bib = stmt.executeQuery();
 				JsonArray jNomiPrecedenti = new JsonArray();
-				while(bib.next())
-				{
-					String prec = bib.getString("denominazione");
-					if (prec != null && prec != "") {
-						jNomiPrecedenti.add(new JsonPrimitive(prec));
-						
-					} else {
-						log.warn(idBib + ": denominazione precedente vuota o null");
+				while(bib.next()) {
+					if (bib.getString("denominazione") != null && bib.getString("denominazione").trim().length() > 0) {
+						jNomiPrecedenti.add(new JsonPrimitive(bib.getString("denominazione")));
 					}
 				}
-				jNomi.add("precedenti", jNomiPrecedenti);
+				if (jNomiPrecedenti.size() > 0) {
+					jNomi.add("precedenti", jNomiPrecedenti);
+				}
 
 // Denominazioni alternative, trattate come le precedenti
 
@@ -1031,17 +1188,14 @@ public class OpenData
 				stmt.setInt(1, idBib);
 				bib = stmt.executeQuery();
 				JsonArray jNomiAlternativi = new JsonArray();
-				while(bib.next())
-				{
-					String altern = bib.getString("denominazione");
-					if (altern != null && altern != "") {
-						jNomiAlternativi.add(new JsonPrimitive(altern));
-						
-					} else {
-						log.warn(idBib + ": denominazione alternativa vuota o null");
+				while(bib.next()) {
+					if (bib.getString("denominazione") != null && bib.getString("denominazione").trim().length() > 0) {
+						jNomiAlternativi.add(new JsonPrimitive(bib.getString("denominazione")));
 					}
 				}
-				jNomi.add("alternative", jNomiAlternativi);
+				if (jNomiAlternativi.size() > 0) {
+					jNomi.add("alternative", jNomiAlternativi);
+				}
 
 // La proprietà "denominazioni" si aggiunge come array a jBib
 
@@ -1078,9 +1232,21 @@ public class OpenData
 						jAccesso.addProperty("riservato", bib.getString("riservata"));
 					}
 
-					if(bib.getString("handicap") != null)
+					if(bib.getInt("handicap") > 0)
 					{
-						jAccesso.addProperty("portatori-handicap", bib.getBoolean("handicap"));
+						int handicap = bib.getInt("handicap");
+						if (handicap == 1) {
+							jAccesso.addProperty("portatori-handicap", "Accessibile");	
+												
+						} else if (handicap == 2) {
+							jAccesso.addProperty("portatori-handicap", "Parzialmente accessibile");	
+												
+						} else if (handicap == 3) {
+							jAccesso.addProperty("portatori-handicap", "Non accessibile");
+													
+						} else {
+							jAccesso.addProperty("portatori-handicap", "null");
+						}
 					}
 					else
 					{
