@@ -274,7 +274,7 @@ fondi-speciali.query = \
 		IFNULL(group_concat(distinct f.catalogazione_inventario_url), ''),  \
 		(IF(group_concat(distinct fsci.id_fondi_speciali_catalogazione_inventario) = 5,  \
 			IFNULL(group_concat(distinct f.citazione_bibliografica), ''), ''))), '\n', '') as 'url-citazionebiblio', \
-	IFNULL(group_concat(distinct IF(LENGTH(d.id_dewey) > 3, concat(SUBSTR(d.id_dewey, 1, 3), '.', SUBSTR(d.id_dewey, 4)), d.id_dewey)), '') as 'dewey', \
+	IFNULL(group_concat(distinct d.id_dewey), '') as 'dewey', \
 	IFNULL(group_concat(distinct d.descrizione), '') as 'dewey-testo', \
 	group_concat(distinct tf.descrizione) as 'tipologia', \
 	REPLACE(IFNULL(group_concat(distinct f.consistenza), ''), '\n', '') as 'consistenza', \
@@ -282,8 +282,8 @@ fondi-speciali.query = \
 	REPLACE(IFNULL(group_concat(distinct f.modalita_acquisizione), ''), '\n', '') as 'mod-acquisizione', \
 	REPLACE(IFNULL(group_concat(distinct f.bibliografia), ''), '\n', '') as 'bibliografia', \
 	IFNULL(group_concat(distinct td.descrizione order by td.id_patrimonio_specializzazione asc separator '$$$'), '') as 'tipologia-documentaria', \
-	IF(group_concat(distinct tna.id) is null, '', group_concat(distinct concat(tna.descrizione, '£', pr.qualifica) separator '$$$')) as 'provenienza', \
-	IF(group_concat(distinct tna2.id) is null, '', group_concat(distinct concat(tna2.descrizione, '£', sp.qualifica) separator '$$$')) as 'soggetto-produttore', \
+	IF(group_concat(distinct tna.id) is null, group_concat(distinct concat('£', pr.qualifica, '£', IFNULL(pr.permalink, ''), '£', IFNULL(pr.note, '')) separator '$$$'), group_concat(distinct concat(tna.descrizione, '£', pr.qualifica, '£', IFNULL(pr.permalink, ''), '£', IFNULL(pr.note, '')) separator '$$$')) as 'provenienza', \
+	IF(group_concat(distinct tna2.id) is null, group_concat(distinct concat('£', sp.qualifica, '£', IFNULL(sp.permalink, ''), '£', IFNULL(sp.note, '')) separator '$$$'), group_concat(distinct concat(tna2.descrizione, '£', sp.qualifica, '£', IFNULL(sp.permalink, ''), '£', IFNULL(sp.note, '')) separator '$$$')) as 'soggetto-produttore', \
 	(select IF((select count(*) from fondi_collegati where id_fondo_1 = f.id_fondi_speciali group by id_fondo_1) > 0, (select group_concat(concat('IT-', fc_b.isil_provincia, LPAD(fc_b.isil_numero, 4, '0'), '£', LPAD(bhf.codice, 3, '0'), '_', fc_f.denominazione) separator '$$$') \
 	from fondi_collegati fc \
 	join biblioteca fc_b on fc.id_biblioteca_2 = fc_b.id_biblioteca \

@@ -598,12 +598,27 @@ public class OpenData
 						if (provenienzaArr != null && provenienzaArr.length > 0) {
 							Element prov = new Element("provenienza");
 							for (int i = 0; i < provenienzaArr.length; i++) {
-								String[] provenienzaEntry = provenienzaArr[i].split("£");
-								if (provenienzaEntry != null && provenienzaEntry.length == 2) {
-									Element entry = new Element("denominazione");
-									entry.setAttribute("tipologia", provenienzaEntry[0]);
-									entry.setText(provenienzaEntry[1]);
-									prov.addContent(entry);
+								String[] provenienzaEntry = provenienzaArr[i].split("£", -1);
+								if (provenienzaEntry != null && provenienzaEntry.length == 4) {
+									/* Controllo se almeno la denominazione, che starà in posizione 1 dell'array, è presente  */
+									if (provenienzaEntry[1] != null && provenienzaEntry[1].length() > 0) {
+										Element entry = new Element("denominazione");
+										String prTip = provenienzaEntry[0];
+										String prDen = provenienzaEntry[1];
+										String prPerm = provenienzaEntry[2];
+										String prNote = provenienzaEntry[3];
+										if (prTip != null && prTip.length() > 0) {
+											entry.setAttribute("tipologia", prTip);
+										}
+										if (prPerm != null && prPerm.length() > 0) {
+											entry.setAttribute("permalink", prPerm);
+										}
+										if (prNote != null && prNote.length() > 0) {
+											entry.setAttribute("nota", prNote);
+										}									
+										entry.setText(prDen);
+										prov.addContent(entry);
+									}
 								}
 							}
 							if (!(prov.getTextTrim().isEmpty() && prov.getChildren().isEmpty())) {
@@ -618,12 +633,27 @@ public class OpenData
 						if (soggProdArr != null && soggProdArr.length > 0) {
 							Element soggProd = new Element("soggetto-produttore");
 							for (int i = 0; i < soggProdArr.length; i++) {
-								String[] soggProdEntry = soggProdArr[i].split("£");
-								if (soggProdEntry != null && soggProdEntry.length == 2) {
-									Element entry = new Element("denominazione");
-									entry.setAttribute("tipologia", soggProdEntry[0]);
-									entry.setText(soggProdEntry[1]);
-									soggProd.addContent(entry);
+								String[] soggProdEntry = soggProdArr[i].split("£", -1);
+								if (soggProdEntry != null && soggProdEntry.length == 4) {
+									/* Controllo se almeno la denominazione, che starà in posizione 1 dell'array, è presente  */
+									if (soggProdEntry[1] != null && soggProdEntry[1].length() > 0) {
+										Element entry = new Element("denominazione");
+										String spTip = soggProdEntry[0];
+										String spDen = soggProdEntry[1];
+										String spPerm = soggProdEntry[2];
+										String spNote = soggProdEntry[3];
+										if (spTip != null && spTip.length() > 0) {
+											entry.setAttribute("tipologia", spTip);
+										}
+										if (spPerm != null && spPerm.length() > 0) {
+											entry.setAttribute("permalink", spPerm);
+										}
+										if (spNote != null && spNote.length() > 0) {
+											entry.setAttribute("nota", spNote);
+										}									
+										entry.setText(spDen);
+										soggProd.addContent(entry);
+									}
 								}
 							}
 							if (!(soggProd.getTextTrim().isEmpty() && soggProd.getChildren().isEmpty())) {
